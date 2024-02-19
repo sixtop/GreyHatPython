@@ -16,3 +16,10 @@ https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-process
 
 * ProecssInformation
 https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information
+
+* OpenProcess
+https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess
+
+#### debugapi.h
+* DebugActiveProcess
+https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-debugactiveprocess
