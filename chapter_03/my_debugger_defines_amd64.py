@@ -90,6 +90,15 @@ class CONTEXT_x64(Structure):
         ("SegFs", WORD),
         ("SegGs", WORD),
         ("SegSs", WORD),
+
+        # EFLAGS (15 - 0 bits)
+        # 11 OF
+        # 10 DF
+        # 07 SF
+        # 06 ZF
+        # 04 AF
+        # 02 PF
+        # 01 CF
         ("EFlags", DWORD),
 
         # Debug
@@ -100,7 +109,7 @@ class CONTEXT_x64(Structure):
         ("Dr6", DWORD64),
         ("Dr7", DWORD64),
 
-        # Integer
+        # General purpose registers
         ("Rax", DWORD64),
         ("Rcx", DWORD64),
         ("Rdx", DWORD64),
@@ -118,7 +127,7 @@ class CONTEXT_x64(Structure):
         ("R14", DWORD64),
         ("R15", DWORD64),
 
-        # Counter
+        # Instruction pointer register
         ("Rip", DWORD64),
 
         # Floating Point

@@ -7,8 +7,12 @@ kernel32 = windll.kernel32
 class Debugger():
     def __init__(self):
         self.h_process = None
+        self.h_thread = None
         self.pid = None
+        self.context = None
         self.debugger_active = None
+        self.exception = None
+        self.exception_address = None
 
     def load(self, path_to_exe):
         # dwCreation flag determines how to create the process
@@ -60,7 +64,6 @@ class Debugger():
         if kernel32.DebugActiveProcess(pid):
             self.debugger_active = True
             self.pid = int(pid)
-            self.run()
         else:
             print(f"[*] Unable to attach to the process: {kernel32.GetLastError()}")
 
@@ -74,13 +77,39 @@ class Debugger():
         continue_status = DBG_CONTINUE
 
         # https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-waitfordebugevent
-        #if kernel32.WaitForDebugEvent(byref(debug_event), INFINITE):
-        if kernel32.WaitForDebugEvent(byref(debug_event), 100):
-            input("Press a key to continue...")
-            self.debugger_active = False
+        if kernel32.WaitForDebugEvent(byref(debug_event), INFINITE):
+
+            # Obtain thread and context info
+            self.h_thread = self.open_thread(debug_event.dwThreadId)
+            self.context = self.get_thread_context(self.h_thread)
+
+            print(f"Event code: {debug_event.dwDebugEventCode}, thread ID: {debug_event.dwThreadId}")
+
+            if debug_event.dwDebugEventCode == EXCEPTION_DEBUG_EVENT:
+                # Obtain exception code
+                exception = debug_event.u.Exception.ExceptionRecord.ExceptionCode
+                self.exception_address = debug_event.u.Exception.ExceptionRecord.ExceptionAddress
+
+                if exception == EXCEPTION_ACCESS_VIOLATION:
+                    print("Access violation detected.")
+                elif exception == EXCEPTION_BREAKPOINT:
+                    # handle breakpoint
+                    continue_status = self.exception_handler_breakpoint()
+
+                elif exception == EXCEPTION_GUARD_PAGE:
+                    print("Guard page access detected.")
+                elif exception == EXCEPTION_SINGLE_STEP:
+                    print("Single stepping.")
+
+            # input("Press a key to continue...")
+            # self.debugger_active = False
 
             # https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-continuedebugevent
             kernel32.ContinueDebugEvent(debug_event.dwProcessId, debug_event.dwThreadId, continue_status)
+
+    def exception_handler_breakpoint(self):
+        print(f"[*] Inside the breakpoint handler. Exception address: {hex(self.exception_address)}")
+        return DBG_CONTINUE
 
     def detach(self):
 
