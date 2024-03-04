@@ -1,8 +1,16 @@
-### Python Programming for Hackers and Reverse Engineers
+## Python Programming for Hackers and Reverse Engineers
 
 Examples from book https://nostarch.com/ghpython.htm
 
 by Justin Seitz
+
+### Architecture
+
+Updating original [book code](https://nostarch.com/download/ghpython_src.zip) to run on amd64 (Ryzen 9 5900X) and Python 3.11.x
+
+https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/40332.pdf
+
+https://docs.python.org/3.11/library/ctypes.html
 
 ### Links
 
