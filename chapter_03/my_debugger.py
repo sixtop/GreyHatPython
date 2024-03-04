@@ -1,4 +1,5 @@
 from ctypes import *
+from ctypes import wintypes
 from my_debugger_defines import *
 from my_debugger_defines_amd64 import *
 
@@ -13,6 +14,7 @@ class Debugger():
         self.debugger_active = None
         self.exception = None
         self.exception_address = None
+        self.breakpoints = {}
 
     def load(self, path_to_exe):
         # dwCreation flag determines how to create the process
@@ -62,7 +64,7 @@ class Debugger():
         # attempt to attach to process
         # https://learn.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-debugactiveprocess
         if kernel32.DebugActiveProcess(pid):
-            self.debugger_active = True
+            self.debugger_active = False  # True
             self.pid = int(pid)
         else:
             print(f"[*] Unable to attach to the process: {kernel32.GetLastError()}")
@@ -174,3 +176,66 @@ class Debugger():
             return context
         else:
             return False
+
+    def read_process_memory(self, address, length):
+        data = ""
+        read_buf = create_string_buffer(length)
+        count = c_ulong(0)
+
+        # https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-readprocessmemory
+
+        # TODO: call fails, needs argtypes maybe?
+        if not kernel32.ReadProcessMemory(self.h_process, address, read_buf, length, byref(count)):
+            return False
+        else:
+            data += read_buf.raw
+            return data
+
+    def write_process_memory(self, address, data):
+        count = c_ulong(0)
+        length = len(data)
+
+        c_data = c_char_p(data[count.value:])
+
+        # https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-writeprocessmemory
+        if not kernel32.WriteProcessMemory(self.h_process, address, c_data, length, byref(count)):
+            return False
+        else:
+            return True
+
+    def bp_set(self, address):
+        if address not in self.breakpoints:
+            try:
+                # store original byte
+                original_byte = self.read_process_memory(address, 1)
+
+                # write INT# opcode
+                self.write_process_memory(address, "\xCC")
+
+                # register the breakpoint
+                self.breakpoints[address] = (address, original_byte)
+
+            except Exception:
+                print(f"Exception while setting BP: {Exception}")
+                return False
+
+        return True
+
+    def func_resolve(self, dll, function):
+        # dll_buf = create_string_buffer(dll, size=10)
+
+        # https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlea
+        kernel32.GetModuleHandleA.restype = wintypes.HMODULE
+        kernel32.GetModuleHandleA.argtypes = [wintypes.LPCSTR]
+        handle = kernel32.GetModuleHandleA(dll)
+
+        # https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress
+        kernel32.GetProcAddress.restype = PVOID
+        kernel32.GetProcAddress.argtypes = [HANDLE, c_char_p]
+        address = kernel32.GetProcAddress(handle, function)
+
+        kernel32.CloseHandle.restype = BYTE
+        kernel32.CloseHandle.argtypes = [HANDLE]
+        kernel32.CloseHandle(handle)
+
+        return address
